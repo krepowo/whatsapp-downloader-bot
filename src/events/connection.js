@@ -2,6 +2,7 @@ import { connectToWhatsApp, sock } from "../index.js";
 import { Boom } from "@hapi/boom";
 import qrcode from "qrcode-terminal";
 import log from "../utils/logger.js";
+import { DisconnectReason } from "@whiskeysockets/baileys";
 
 // sock.ev.on("connection.update", (update) => {
 //

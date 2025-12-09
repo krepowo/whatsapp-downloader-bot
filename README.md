@@ -11,7 +11,7 @@ cd whatsapp-downloader-bot
 npm install
 
 # Rename config.js.example to config.js and edit it to your needs
-mv config.js.example config.js
+cp config.js.example config.js
 nano config.js
 
 # Start the bot
