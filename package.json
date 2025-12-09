@@ -1,0 +1,20 @@
+{
+  "name": "downloader-bot-wa",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "krepowo",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.3",
+    "qrcode-terminal": "^0.12.0",
+    "snapsave-media-downloader": "^2.3.3"
+  }
+}

@@ -1,0 +1,5 @@
+export default {
+    whitelist: [
+        "6281234567890", // Change with your whatsapp number
+    ],
+};
