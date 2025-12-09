@@ -9,9 +9,12 @@ export const messageUpsert = {
         if (type === "notify") {
             const m = messages[0];
             if (!m.message) return;
-            if (!config.whitelist.includes(m.key.remoteJid.split("@")[0])) {
-                log.warn(`Received message from unwhitelisted jid: ${m.key.remoteJid}`);
-                return;
+
+            if (config.enableWhitelist) {
+                if (!config.whitelist.includes(m.key.remoteJid.split("@")[0])) {
+                    log.info(`Received message from unwhitelisted jid: ${m.key.remoteJid}`);
+                    return;
+                }
             }
 
             await sock.readMessages([m.key]);
