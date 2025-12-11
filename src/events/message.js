@@ -11,8 +11,9 @@ export const messageUpsert = {
             if (!m.message) return;
 
             if (config.enableWhitelist) {
-                if (!config.whitelist.includes(m.key.remoteJid.split("@")[0])) {
-                    log.info(`Received message from unwhitelisted jid: ${m.key.remoteJid}`);
+                const sender = m.key.remoteJid.replace(/@s\.whatsapp.net|@g\.us/g, "");
+                if (!config.whitelist.includes(sender)) {
+                    log.info(`Blocked message from ${sender} due to not in whitelist`);
                     return;
                 }
             }
