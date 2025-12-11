@@ -23,8 +23,6 @@ export const messageUpsert = {
             const messageText = m.message.conversation || m.message[messageType]?.caption || m.message[messageType]?.text;
             const remoteJid = m.key.remoteJid;
 
-            log.info(`Received message from ${remoteJid}: ${messageText}`);
-
             if (messageText === "!ping") {
                 await sock.sendMessage(remoteJid, { text: "pong" }, { quoted: m });
             }

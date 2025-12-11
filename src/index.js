@@ -10,6 +10,8 @@ export const connectToWhatsApp = async () => {
     const sock = makeWASocket({
         auth: state,
         logger: log,
+        syncFullHistory: false,
+        keepAliveIntervalMs: 10000,
     });
     sock.ev.on("creds.update", saveCreds);
 
