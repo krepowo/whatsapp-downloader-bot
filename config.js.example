@@ -3,4 +3,6 @@ export default {
     whitelist: [
         "6281234567890", // Change with your whatsapp number
     ],
+    loginMethod: "qrcode", // "qrcode" or "pairing"
+    botPhoneNumber: "6281234567890", // Only needed if loginMethod is "pairing"
 };

@@ -1,4 +1,4 @@
-import { makeWASocket, useMultiFileAuthState } from "@whiskeysockets/baileys";
+import { fetchLatestBaileysVersion, fetchLatestWaWebVersion, makeWASocket, useMultiFileAuthState } from "baileys";
 import log from "./utils/logger.js";
 
 import { connectionUpdate } from "./events/connection.js";
