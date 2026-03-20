@@ -1,4 +1,4 @@
-import { fetchLatestBaileysVersion, fetchLatestWaWebVersion, makeWASocket, useMultiFileAuthState } from "baileys";
+import { fetchLatestBaileysVersion, fetchLatestWaWebVersion, makeWASocket, useMultiFileAuthState } from "@ryuu-reinzz/baileys";
 import log from "./utils/logger.js";
 
 import { connectionUpdate } from "./events/connection.js";
@@ -7,11 +7,14 @@ import { messageUpsert } from "./events/message.js";
 export const connectToWhatsApp = async () => {
     const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
 
+    const waversion = await fetchLatestBaileysVersion();
+
     const sock = makeWASocket({
         auth: state,
         logger: log,
         syncFullHistory: false,
         keepAliveIntervalMs: 10000,
+        version: waversion.version,
     });
     sock.ev.on("creds.update", saveCreds);
 
