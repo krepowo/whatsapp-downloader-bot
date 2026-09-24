@@ -1,13 +1,9 @@
-import { connectToWhatsApp, sock } from "../index.js";
 import { Boom } from "@hapi/boom";
 import qrcode from "qrcode-terminal";
 import log from "../utils/logger.js";
-import { DisconnectReason } from "@ryuu-reinzz/baileys";
+import { DisconnectReason } from "@whiskeysockets/baileys";
 import config from "../../config.js";
-
-// sock.ev.on("connection.update", (update) => {
-//
-// });
+import { connectToWhatsApp } from "../index.js";
 
 export const connectionUpdate = {
     event: "connection.update",
@@ -20,17 +16,21 @@ export const connectionUpdate = {
             } else {
                 const phoneNumber = config.botPhoneNumber;
                 if (!phoneNumber) {
-                    log.error("Bot phone number is not set in config, cannot generate QR code for pairing");
+                    log.error("Bot phone number is not set in config, cannot generate pairing code");
                     return;
                 }
-                const code = await sock.requestPairingCode(phoneNumber);
-                log.info(`Pairing code for ${phoneNumber}: ${code}`);
+                try {
+                    const code = await this.requestPairingCode(phoneNumber);
+                    log.info(`Pairing code for ${phoneNumber}: ${code}`);
+                } catch (err) {
+                    log.error(`Failed to request pairing code: ${err?.message || err}`);
+                }
             }
         }
 
         if (connection === "close") {
             const shouldReconnect = (lastDisconnect?.error instanceof Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
-            log.info(`Connection closed due to ${lastDisconnect?.error}, reconnecting ${shouldReconnect}`);
+            log.info(`Connection closed due to ${lastDisconnect?.error}, reconnecting: ${shouldReconnect}`);
 
             if (shouldReconnect) {
                 connectToWhatsApp();

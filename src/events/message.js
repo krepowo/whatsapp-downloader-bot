@@ -3,6 +3,10 @@ import { sock } from "../index.js";
 import { download } from "../utils/downloader.js";
 import log from "../utils/logger.js";
 
+const isGroupMsg = (remoteJid) => {
+    return remoteJid?.endsWith("@g.us");
+};
+
 export const messageUpsert = {
     event: "messages.upsert",
     handler: async ({ messages, type }) => {
@@ -12,11 +16,23 @@ export const messageUpsert = {
             const m = messages?.[0];
             if (!m?.message) return;
 
-            // Whitelist
-            if (config.enableWhitelist) {
-                const sender = m.key?.remoteJid?.replace(/@s\.whatsapp.net|@g\.us/g, "");
+            const remoteJid = m.key?.remoteJid;
+            const isGroup = isGroupMsg(remoteJid);
+            const sender = m.key?.participant?.replace(/@s\.whatsapp\.net/g, "") || remoteJid?.replace(/@s\.whatsapp\.net|@g\.us/g, "");
+
+            // Whitelist — only applies to personal chats
+            if (config.enableWhitelist && !isGroup) {
                 if (!sender || !config.whitelist.includes(sender)) {
                     log.info(`Blocked message from ${sender} due to not in whitelist`);
+                    return;
+                }
+            }
+
+            // In group chats, only respond to mentions (the bot's own number)
+            if (isGroup && config.groupMentionOnly !== false) {
+                const botNumber = sock?.user?.id?.replace(/:.*@/s, "") || "";
+                const mentionedJids = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                if (!mentionedJids.some((jid) => jid.includes(botNumber))) {
                     return;
                 }
             }
@@ -24,17 +40,15 @@ export const messageUpsert = {
             // Mark as read
             try {
                 await sock.readMessages([m.key]);
-                log.info(`Marked message as read for JID: ${m.key?.remoteJid}`);
+                log.info(`Marked message as read for JID: ${remoteJid}`);
             } catch (err) {
                 log.warn(`Failed to mark message as read: ${err?.message || err}`);
             }
 
             const messageType = Object.keys(m.message)[0];
             const messageText = m.message.conversation || m.message[messageType]?.caption || m.message[messageType]?.text || "";
-            const remoteJid = m.key?.remoteJid;
 
-            if (!remoteJid) {
-                log.warn("Missing remoteJid; skipping message handling");
+            if (!messageText) {
                 return;
             }
 
@@ -79,23 +93,23 @@ export const messageUpsert = {
                     const url = media.url;
 
                     if (type === "video") {
-                        await sock.sendMessage(remoteJid, { video: { url }, caption: `✅ Selesai!` }, { quoted: processingMsg || m });
+                        await sock.sendMessage(remoteJid, { video: { url }, caption: "✅ Selesai!" }, { quoted: processingMsg || m });
                         log.info(`Successfully sent video to ${remoteJid}`);
                     } else if (type === "image") {
-                        await sock.sendMessage(remoteJid, { image: { url }, caption: `✅ Selesai!` }, { quoted: processingMsg || m });
+                        await sock.sendMessage(remoteJid, { image: { url }, caption: "✅ Selesai!" }, { quoted: processingMsg || m });
                         log.info(`Successfully sent image to ${remoteJid}`);
                     } else {
                         await sock.sendMessage(
                             remoteJid,
-                            { document: { url }, fileName: `file.${media.extension}`, caption: `✅ Selesai!` },
-                            { quoted: processingMsg || m }
+                            { document: { url }, fileName: `file.${media.extension}`, caption: "✅ Selesai!" },
+                            { quoted: processingMsg || m },
                         );
                         log.info(`Successfully sent document (${media.extension}) to ${remoteJid}`);
                     }
                 } catch (err) {
                     log.error(`Error during download/send flow: ${err?.message || err}`);
                     try {
-                        await sock.sendMessage(remoteJid, { text: `❌ Gagal: Terjadi kesalahan saat memproses link` }, { quoted: processingMsg || m });
+                        await sock.sendMessage(remoteJid, { text: "❌ Gagal: Terjadi kesalahan saat memproses link" }, { quoted: processingMsg || m });
                     } catch (sendErr) {
                         log.warn(`Failed to send failure notice: ${sendErr?.message || sendErr}`);
                     }

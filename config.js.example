@@ -5,4 +5,5 @@ export default {
     ],
     loginMethod: "qrcode", // "qrcode" or "pairing"
     botPhoneNumber: "6281234567890", // Only needed if loginMethod is "pairing"
+    groupMentionOnly: false, // Set to true to require bot mention in group chats
 };
