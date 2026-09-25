@@ -1,5 +1,4 @@
 import config from "../../config.js";
-import { sock } from "../index.js";
 import { download } from "../utils/downloader.js";
 import log from "../utils/logger.js";
 
@@ -9,7 +8,9 @@ const isGroupMsg = (remoteJid) => {
 
 export const messageUpsert = {
     event: "messages.upsert",
-    handler: async ({ messages, type }) => {
+    handler: async function ({ messages, type }) {
+        // Use the dynamically-bound socket (bound via .bind(sock) in index.js)
+        const socket = this;
         try {
             if (type !== "notify") return;
 
@@ -30,7 +31,7 @@ export const messageUpsert = {
 
             // In group chats, only respond to mentions (the bot's own number)
             if (isGroup && config.groupMentionOnly !== false) {
-                const botNumber = sock?.user?.id?.replace(/:.*@/s, "") || "";
+                const botNumber = socket?.user?.id?.replace(/:.*@/s, "") || "";
                 const mentionedJids = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 if (!mentionedJids.some((jid) => jid.includes(botNumber))) {
                     return;
@@ -39,7 +40,7 @@ export const messageUpsert = {
 
             // Mark as read
             try {
-                await sock.readMessages([m.key]);
+                await socket.readMessages([m.key]);
                 log.info(`Marked message as read for JID: ${remoteJid}`);
             } catch (err) {
                 log.warn(`Failed to mark message as read: ${err?.message || err}`);
@@ -55,7 +56,7 @@ export const messageUpsert = {
             // Ping
             if (messageText.trim() === "!ping") {
                 try {
-                    await sock.sendMessage(remoteJid, { text: "pong" }, { quoted: m });
+                    await socket.sendMessage(remoteJid, { text: "pong" }, { quoted: m });
                     log.info(`Sent pong to ${remoteJid}`);
                 } catch (err) {
                     log.warn(`Failed to send pong: ${err?.message || err}`);
@@ -67,7 +68,7 @@ export const messageUpsert = {
             if (messageText.includes("https://") || messageText.includes("http://")) {
                 let processingMsg;
                 try {
-                    processingMsg = await sock.sendMessage(remoteJid, { text: "⌛ Memproses link..." }, { quoted: m });
+                    processingMsg = await socket.sendMessage(remoteJid, { text: "⌛ Memproses link..." }, { quoted: m });
                     log.info(`Sent processing status to ${remoteJid}`);
                 } catch (err) {
                     log.warn(`Failed to send processing status: ${err?.message || err}`);
@@ -77,14 +78,14 @@ export const messageUpsert = {
                     const result = await download(messageText);
 
                     if (!result?.success) {
-                        await sock.sendMessage(remoteJid, { text: `❌ Gagal: ${result?.message || "Terjadi kesalahan"}` }, { quoted: processingMsg || m });
+                        await socket.sendMessage(remoteJid, { text: `❌ Gagal: ${result?.message || "Terjadi kesalahan"}` }, { quoted: processingMsg || m });
                         log.info(`Download failed for ${remoteJid}: ${result?.message || "Unknown error"}`);
                         return;
                     }
 
                     const media = result?.data?.media?.[0];
                     if (!media) {
-                        await sock.sendMessage(remoteJid, { text: "❌ Gagal: Media tidak ditemukan" }, { quoted: processingMsg || m });
+                        await socket.sendMessage(remoteJid, { text: "❌ Gagal: Media tidak ditemukan" }, { quoted: processingMsg || m });
                         log.info(`No media found in download result for ${remoteJid}`);
                         return;
                     }
@@ -93,13 +94,13 @@ export const messageUpsert = {
                     const url = media.url;
 
                     if (type === "video") {
-                        await sock.sendMessage(remoteJid, { video: { url }, caption: "✅ Selesai!" }, { quoted: processingMsg || m });
+                        await socket.sendMessage(remoteJid, { video: { url }, caption: "✅ Selesai!" }, { quoted: processingMsg || m });
                         log.info(`Successfully sent video to ${remoteJid}`);
                     } else if (type === "image") {
-                        await sock.sendMessage(remoteJid, { image: { url }, caption: "✅ Selesai!" }, { quoted: processingMsg || m });
+                        await socket.sendMessage(remoteJid, { image: { url }, caption: "✅ Selesai!" }, { quoted: processingMsg || m });
                         log.info(`Successfully sent image to ${remoteJid}`);
                     } else {
-                        await sock.sendMessage(
+                        await socket.sendMessage(
                             remoteJid,
                             { document: { url }, fileName: `file.${media.extension}`, caption: "✅ Selesai!" },
                             { quoted: processingMsg || m },
@@ -109,7 +110,7 @@ export const messageUpsert = {
                 } catch (err) {
                     log.error(`Error during download/send flow: ${err?.message || err}`);
                     try {
-                        await sock.sendMessage(remoteJid, { text: "❌ Gagal: Terjadi kesalahan saat memproses link" }, { quoted: processingMsg || m });
+                        await socket.sendMessage(remoteJid, { text: "❌ Gagal: Terjadi kesalahan saat memproses link" }, { quoted: processingMsg || m });
                     } catch (sendErr) {
                         log.warn(`Failed to send failure notice: ${sendErr?.message || sendErr}`);
                     }

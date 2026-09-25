@@ -3,11 +3,10 @@ import qrcode from "qrcode-terminal";
 import log from "../utils/logger.js";
 import { DisconnectReason } from "@whiskeysockets/baileys";
 import config from "../../config.js";
-import { connectToWhatsApp } from "../index.js";
 
 export const connectionUpdate = {
     event: "connection.update",
-    handler: async (update) => {
+    handler: async function (update) {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
@@ -28,21 +27,19 @@ export const connectionUpdate = {
             }
         }
 
-        if (connection === "close") {
-            const shouldReconnect = (lastDisconnect?.error instanceof Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
-            log.info(`Connection closed due to ${lastDisconnect?.error}, reconnecting: ${shouldReconnect}`);
-
-            if (shouldReconnect) {
-                connectToWhatsApp();
-            }
-        }
-
-        if (connection === "close" && (lastDisconnect?.error instanceof Boom)?.output?.statusCode === DisconnectReason.restartRequired) {
-            connectToWhatsApp();
-        }
-
         if (connection === "open") {
             log.info("Opened connection");
+        }
+
+        // Connection close handling moved to index.js for better reconnect control
+        if (connection === "close") {
+            const statusCode = (lastDisconnect?.error instanceof Boom)?.output?.statusCode;
+            log.info(`Connection closed (status: ${statusCode})`);
+
+            if (statusCode === DisconnectReason.loggedOut) {
+                log.info("Logged out, not reconnecting. Please check your credentials.");
+            }
+            // Reconnection is handled in index.js
         }
     },
 };
