@@ -1,5 +1,5 @@
 import config from "../../config.js";
-import { downloadMediaMessage } from "@whiskeysockets/baileys";
+import { downloadMediaMessage, normalizeMessageContent } from "@whiskeysockets/baileys";
 import { imageToSticker } from "../utils/sticker.js";
 import { download } from "../utils/downloader.js";
 import log from "../utils/logger.js";
@@ -48,9 +48,12 @@ export const messageUpsert = {
                 log.warn(`Failed to mark message as read: ${err?.message || err}`);
             }
 
-            const messageType = Object.keys(m.message)[0];
-            const hasImage = messageType === "imageMessage";
-            const messageText = m.message.conversation || m.message[messageType]?.caption || m.message[messageType]?.text || "";
+            // Resolve content explicitly — never via Object.keys()[0]: in groups, keys[0] is often
+            // messageContextInfo / senderKeyDistributionMessage, not the actual message type
+            const mContent = normalizeMessageContent(m.message);
+            const hasImage = !!mContent.imageMessage;
+            const messageText =
+                mContent.conversation || mContent.imageMessage?.caption || mContent.extendedTextMessage?.text || mContent.videoMessage?.caption || "";
 
             // Ping
             if (messageText.trim() === "!ping") {
@@ -95,16 +98,6 @@ export const messageUpsert = {
                     } catch (sendErr) {
                         log.warn(`Failed to send sticker error notice: ${sendErr?.message || sendErr}`);
                     }
-                }
-                return;
-            }
-
-            // ".s" without image — hint
-            if (messageText.trim() === ".s") {
-                try {
-                    await socket.sendMessage(remoteJid, { text: "Kirim gambar dengan caption .s" }, { quoted: m });
-                } catch (err) {
-                    log.warn(`Failed to send .s hint: ${err?.message || err}`);
                 }
                 return;
             }
