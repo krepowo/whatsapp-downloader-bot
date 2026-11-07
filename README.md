@@ -2,6 +2,14 @@
 
 A simple WhatsApp bot for downloading media from Instagram, Facebook, Twitter, and TikTok.
 
+## Features
+
+- Download media (video/image/document) from Instagram, Facebook, Twitter, and TikTok links.
+- Image-to-sticker conversion:
+  - **Private chat**: send any image (with or without a caption) and it is converted automatically.
+  - **Group chat**: send an image with the caption `.s` to convert it.
+  - Output is a 512×512 WebP, auto-compressed to stay under WhatsApp's sticker size limit.
+
 ## Group Chat Behavior
 
 - By default, the bot responds to everyone in group chats (no mention required).
