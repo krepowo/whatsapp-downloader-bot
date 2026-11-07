@@ -1,4 +1,6 @@
 import config from "../../config.js";
+import { downloadMediaMessage } from "@whiskeysockets/baileys";
+import { imageToSticker } from "../utils/sticker.js";
 import { download } from "../utils/downloader.js";
 import log from "../utils/logger.js";
 
@@ -47,11 +49,8 @@ export const messageUpsert = {
             }
 
             const messageType = Object.keys(m.message)[0];
+            const hasImage = messageType === "imageMessage";
             const messageText = m.message.conversation || m.message[messageType]?.caption || m.message[messageType]?.text || "";
-
-            if (!messageText) {
-                return;
-            }
 
             // Ping
             if (messageText.trim() === "!ping") {
@@ -60,6 +59,52 @@ export const messageUpsert = {
                     log.info(`Sent pong to ${remoteJid}`);
                 } catch (err) {
                     log.warn(`Failed to send pong: ${err?.message || err}`);
+                }
+                return;
+            }
+
+            // ".s" without image — hint
+            if (!hasImage && messageText.trim() === ".s") {
+                try {
+                    await socket.sendMessage(remoteJid, { text: "Kirim gambar dengan caption .s" }, { quoted: m });
+                } catch (err) {
+                    log.warn(`Failed to send .s hint: ${err?.message || err}`);
+                }
+                return;
+            }
+
+            // Sticker flow: image -> sticker
+            // Group: requires ".s" caption; private chat: any image converts automatically
+            // (works with or without a caption in private chat)
+            const hasUrl = messageText.includes("https://") || messageText.includes("http://");
+            const wantsSticker = hasImage && !hasUrl && (isGroup ? messageText.trim().startsWith(".s") : true);
+
+            if (wantsSticker) {
+                try {
+                    const buffer = await downloadMediaMessage(m, "buffer", {}, { logger: log, reuploadRequest: socket.updateMediaMessage });
+                    if (!buffer) throw new Error("Failed to download media");
+
+                    const sticker = await imageToSticker(buffer);
+
+                    await socket.sendMessage(remoteJid, { sticker }, { quoted: m });
+                    log.info(`Sent sticker to ${remoteJid}`);
+                } catch (err) {
+                    log.error(`Sticker conversion failed: ${err?.message || err}`);
+                    try {
+                        await socket.sendMessage(remoteJid, { text: "❌ Gagal membuat sticker" }, { quoted: m });
+                    } catch (sendErr) {
+                        log.warn(`Failed to send sticker error notice: ${sendErr?.message || sendErr}`);
+                    }
+                }
+                return;
+            }
+
+            // ".s" without image — hint
+            if (messageText.trim() === ".s") {
+                try {
+                    await socket.sendMessage(remoteJid, { text: "Kirim gambar dengan caption .s" }, { quoted: m });
+                } catch (err) {
+                    log.warn(`Failed to send .s hint: ${err?.message || err}`);
                 }
                 return;
             }
