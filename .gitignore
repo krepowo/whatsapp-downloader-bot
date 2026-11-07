@@ -1,3 +1,6 @@
 config.js
 node_modules
 auth_info_baileys
+auth.db
+auth.db-shm
+auth.db-wal

@@ -1,6 +1,7 @@
-import { fetchLatestBaileysVersion, makeWASocket, useMultiFileAuthState, DisconnectReason } from "@whiskeysockets/baileys";
+import { fetchLatestBaileysVersion, makeWASocket, DisconnectReason } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import log from "./utils/logger.js";
+import { useSqliteAuthState } from "./utils/auth-state.js";
 
 import { connectionUpdate } from "./events/connection.js";
 import { messageUpsert } from "./events/message.js";
@@ -12,7 +13,7 @@ export let sock;
 let reconnectTimeout = null;
 
 export const connectToWhatsApp = async () => {
-    const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
+    const { state, saveCreds } = await useSqliteAuthState();
 
     const waversion = await fetchLatestBaileysVersion();
 
